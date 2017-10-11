@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+  <div id="map">
+
+  </div>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD1ECSGppdpqz0-T0GxqJWc4_SObmZ7HdQ&callback=initMap&libraries=visualization"
+  type="text/javascript"></script>
+<script>
+  let map, heatmap;
+
+  async function getPoints() {
+    let res = await fetch('/heatmap/brooklyn');
+    res = res.json();
+    return res;
+  }
+  async function initMap() {
+    let points = await getPoints();
+    let lngAvg = points.map(p => p.lng).reduce((a, b) => a + b) / points.length;
+    let latAvg = points.map(p => p.lat).reduce((a, b) => a + b) / points.length;
+    map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 12,
+      center: {
+        lat: latAvg,
+        lng: lngAvg
+      },
+      mapTypeId: 'satellite'
+    });
+    let ps = points.map(p => {
+        return {
+          location: new google.maps.LatLng(p.lat, p.lng),
+          weight: p.weight
+        };
+      });
+      console.log(ps);
+    heatmap = new google.maps.visualization.HeatmapLayer({
+      data: ps,
+      map: map
+    });
+  }
+</script>
+</body>
+
+</html>
