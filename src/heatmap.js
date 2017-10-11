@@ -1,8 +1,10 @@
 const api = require('./api');
 const fs = require('fs-extra');
 const demand = require('./demand');
+let requestIdGenerator = 10011;
+const requestStatus = {};
 
-async function getInitialResults(price_min, price_max, location) {
+async function getInitialResults(location, price_min, price_max) {
   return await api.search({
     location,
     _limit: 1,
@@ -36,46 +38,78 @@ const getHeatmap = async(location = 'brooklyn') => {
   const exists = await fs.exists(heatmapFile);
   if (exists) {
     let heatmap = await fs.readFile(heatmapFile, 'utf8');
-    return JSON.parse(heatmap);
+    return { points:  JSON.parse(heatmap) };
   }
-  let curPrice = 0;
-  let range = 20;
-  let results = await getInitialResults(location, curPrice, curPrice + range);
-  let allListings = [];
-  try {
-    while (results.metadata.listings_count > 0 && range < 200) {
-      //too many, filter more
-      console.log('Got ', results.metadata.listings_count, 'Listings');
-      if (results.metadata.listings_count > 1000) {
-        range -= 3;
-        if (range < 0) {
-          range = 1;
+  let requestId = requestIdGenerator++;
+  process.nextTick(async () => {
+    let curPrice = 0;
+    let range = 20;
+    let results = await getInitialResults(location, curPrice, curPrice + range);
+    let allListings = [];
+    console.log('Results for location', results, location);
+    try {
+      while (results.metadata.listings_count > 0 && range < 200) {
+        //too many, filter more
+        console.log('Got ', results.metadata.listings_count, 'Listings');
+        if (results.metadata.listings_count > 1000) {
+          range -= 3;
+          if (range < 0) {
+            range = 1;
+          }
+        } else if (results.metadata.listings_count === 0) {
+          //increase fast if at 0, to validate we aren't just in a 0 spot of the price
+          range += 50;
+        } else {
+          curPrice += range;
+          if (results.metadata.listings_count < 300) {
+            range += 3;
+          }
+          let listings = await paginate(location, results.metadata.listings_count, curPrice, range);
+          allListings = allListings.concat(listings);
+          requestStatus[requestId].currentPrice = curPrice;
+          requestStatus[requestId].listingsCount = allListings.length;
         }
-      } else if (results.metadata.listings_count === 0) {
-        //increase fast if at 0, to validate we aren't just in a 0 spot of the price
-        range += 50;
-      } else {
-        curPrice += range;
-        if (results.metadata.listings_count < 300) {
-          range += 3;
-        }
-        let listings = await paginate(location, results.metadata.listings_count, curPrice, range);
-        allListings = allListings.concat(listings);
+        results = await getInitialResults(location, curPrice, curPrice + range);
       }
-      results = await getInitialResults(location, curPrice, curPrice + range);
+    } catch (e) {
+      console.log('Error fetching listings', e);
     }
-  } catch (e) {
-    console.log('Error fetching listings', e);
-  }
-  console.log('Finished fetching listings');
-  const demandPromises = allListings.map((listing) => demand(listing));
-  let heatmap = await Promise.all(demandPromises);
+    console.log('Finished fetching listings');
+    requestStatus[requestId].searchDone = true;
+    const demandPromises = allListings.map((listing) => demand(listing));
 
-  //no need to wait for this
-  fs.writeFile(`./${location}-heatmap.json`, JSON.stringify(heatmap, null, 2), 'utf8');
-  return heatmap;
+    let totalDemand = requestStatus[requestId].demand = demandPromises.length;
+    let demandDone = 0;
+    demandPromises.forEach(d => d.then(() => {
+      demandDone++
+      requestStatus[requestId].demandDone = demandDone;
+    }));
+
+    let heatmap = await Promise.all(demandPromises);
+    
+    await fs.writeFile(`./${location}-heatmap.json`, JSON.stringify(heatmap, null, 2), 'utf8');
+    
+    requestStatus[requestId].done = true;
+  })
+  requestStatus[requestId] = {
+    done: false,
+    searchDone: false,
+    currentPrice: 0,
+    demand: 0,
+    listingsCount: 0,
+    demandDone: 0,
+  };
+  return {
+    requestId,
+  }
+  
+}
+
+function getStatus(id) {
+  return Object.assign({}, requestStatus[id] || {});
 }
 
 module.exports = {
-  getHeatmap
+  getHeatmap,
+  getStatus
 }
