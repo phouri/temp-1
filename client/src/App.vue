@@ -1,11 +1,11 @@
 <template>
   <div id="app">
     <v-app>
+      <app-header />
       <location />
       <status />
       <heat-map />
     </v-app>
-
   </div>
 </template>
 
@@ -13,6 +13,7 @@
 import Location from './components/Location';
 import HeatMap from './components/Map.vue';
 import Status from './components/Status';
+import AppHeader from './components/Header';
 
 export default {
   name: 'app',
@@ -20,6 +21,7 @@ export default {
     Location,
     HeatMap,
     Status,
+    AppHeader,
   },
 };
 
