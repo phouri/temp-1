@@ -1,4 +1,6 @@
-//6 per sec, with 15 I hit the rate limit
+//4 request per second max
+//Did the retry inside the api layer
+
 const throttle = require('promise-ratelimit')(250);
 
 const request = require('request-promise-native');

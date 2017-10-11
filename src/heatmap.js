@@ -44,6 +44,7 @@ const getHeatmap = async(location = 'brooklyn') => {
   process.nextTick(async () => {
     let curPrice = 0;
     let range = 20;
+    //get 1 single result, see how many we have in the price range
     let results = await getInitialResults(location, curPrice, curPrice + range);
     let allListings = [];
     console.log('Results for location', results, location);
@@ -61,6 +62,7 @@ const getHeatmap = async(location = 'brooklyn') => {
           range += 50;
         } else {
           curPrice += range;
+          // if got too few, increase range for next fetch
           if (results.metadata.listings_count < 300) {
             range += 3;
           }
@@ -88,7 +90,7 @@ const getHeatmap = async(location = 'brooklyn') => {
     let heatmap = await Promise.all(demandPromises);
     
     await fs.writeFile(`./${location}-heatmap.json`, JSON.stringify(heatmap, null, 2), 'utf8');
-    
+
     requestStatus[requestId].done = true;
   })
   requestStatus[requestId] = {

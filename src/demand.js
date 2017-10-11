@@ -1,7 +1,5 @@
 const {calendar} = require('./api');
-let count = 0;
 module.exports = async function calcDemand(property) {
-  count ++;
   const star = property.listing.star_rating || 0;
   const revCount = property.listing.reviews_count;
   console.log('demand!', property.listing.id);
@@ -10,7 +8,6 @@ module.exports = async function calcDemand(property) {
   try {
     cal = await calendar(property.listing.id);
   } catch (e) {
-    count--;
     return {
       weight: 0,
       lat: property.listing.lat,
@@ -31,8 +28,7 @@ module.exports = async function calcDemand(property) {
   //5 star rating would deduct 0.5 points, while for an unrated property it won't deduct anything
   //Max rating then would be an unrated property that's busy for the next 10 days (2) 
   const weight = Math.max(busy * 2 + (star / 5 * -0.3), 0);
-  count --;
-  console.log('Finished demand processing', property.listing.id, 'demands left', count);
+  console.log('Finished demand processing', property.listing.id);
   return {
     weight,
     lat: property.listing.lat,
