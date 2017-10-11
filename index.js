@@ -16,6 +16,8 @@ app.use('/api', api);
 
 app.use(express.static('client/dist'));
 
-app.listen(3001, (err) => {
-  console.log('listening 3001');
+const PORT = process.env.PORT || 8080
+
+app.listen(PORT, (err) => {
+  if (!err) console.log(`Listening on ${PORT}`);
 });
