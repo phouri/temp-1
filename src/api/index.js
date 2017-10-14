@@ -18,7 +18,7 @@ const search = async (qs) => {
 }
 
 const airbnbApi = async (path, qs = {}, headers = {}) => {
-  qs.client_id = qs.client_id || 'd306zoyjsyarp7ifhu67rjxn52tv0t20';
+  qs.client_id = qs.client_id || '3092nxybyb0otqw18e8nh5nty';
   headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
   await throttle()
   try {

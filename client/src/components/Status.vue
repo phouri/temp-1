@@ -39,7 +39,7 @@
         if (status.demand === 0) {
           return 0;
         }
-        return Number(status.demandDone / status.demand).toFixed(2);
+        return Number((status.demandDone / status.demand) * 100).toFixed(2);
       },
     },
 };
